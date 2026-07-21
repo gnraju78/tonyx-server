@@ -1,413 +1,112 @@
 # TonyX Backend API
 
-Professional barber shop booking and management system API built with Express.js and MongoDB.
-
-## Table of Contents
-
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Server](#running-the-server)
-- [API Documentation](#api-documentation)
-- [Database Models](#database-models)
-- [Architecture](#architecture)
-
-## Features
-
-✓ User Authentication (Register, Login, JWT)
-✓ Role-based Authorization (Customer, Barber, Manager, Admin)
-✓ Service Management
-✓ Booking Management
-✓ Payment Processing
-✓ Review & Rating System
-✓ Availability Management
-✓ Real-time Notifications
-✓ Promotion/Discount System
-✓ Barber Profiles & Ratings
-✓ Advanced Search & Filtering
+Professional barber shop booking and management system API — Node.js 22, TypeScript (strict), Express, and MongoDB/Mongoose.
 
 ## Tech Stack
 
-- **Runtime**: Node.js
+- **Runtime**: Node.js 22+, TypeScript (strict mode)
 - **Framework**: Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT with jwt-simple
+- **Database**: MongoDB Atlas with Mongoose ODM
+- **Authentication**: JWT (`jsonwebtoken`)
 - **Password Hashing**: bcryptjs
-- **Image Storage**: Cloudinary
-- **Email**: Nodemailer
-- **Validation**: Joi & express-validator
-- **Security**: Helmet, CORS, Rate Limiting
-- **Data Sanitization**: mongo-sanitize, xss-clean
+- **Validation**: Zod (request body/query/params validated at the route boundary)
+- **Image Storage**: Cloudinary (SDK configured; upload endpoints not yet built — see Roadmap)
+- **Security**: Helmet, CORS, tiered rate limiting, custom NoSQL-injection sanitizer
+- **Logging**: Pino (structured, redacts secrets)
+- **Docs**: OpenAPI 3, generated from the same Zod schemas used for validation, served via Swagger UI
+- **Testing**: Vitest, Supertest, mongodb-memory-server
 
-## Project Structure
+## Architecture
+
+Layered, feature-oriented structure:
 
 ```
-tonyx-backend/
-├── config/
-│   └── index.js                 # Configuration management
-├── src/
-│   ├── controllers/             # Request handlers
-│   │   ├── AuthController.js
-│   │   ├── BookingController.js
-│   │   └── ServiceController.js
-│   ├── models/                  # MongoDB schemas
-│   │   ├── User.js
-│   │   ├── Service.js
-│   │   ├── Booking.js
-│   │   ├── Payment.js
-│   │   ├── Review.js
-│   │   ├── Notification.js
-│   │   ├── Promotion.js
-│   │   ├── TimeSlot.js
-│   │   └── Location.js
-│   ├── repositories/            # Data access layer
-│   │   ├── BaseRepository.js
-│   │   ├── UserRepository.js
-│   │   ├── ServiceRepository.js
-│   │   ├── BookingRepository.js
-│   │   └── PaymentRepository.js
-│   ├── services/                # Business logic layer
-│   │   ├── AuthService.js
-│   │   └── BookingService.js
-│   ├── routes/                  # API routes
-│   │   ├── authRoutes.js
-│   │   ├── serviceRoutes.js
-│   │   └── bookingRoutes.js
-│   ├── middleware/              # Custom middleware
-│   │   ├── auth.js
-│   │   └── errorHandler.js
-│   ├── utils/                   # Utility functions
-│   │   ├── AppError.js
-│   │   ├── response.js
-│   │   ├── pagination.js
-│   │   └── database.js
-│   ├── app.js                   # Express app setup
-│   └── index.js                 # Server entry point
-├── public/
-│   └── uploads/                 # Uploaded files
-├── logs/                        # Log files
-├── .env.example                 # Environment variables template
-├── package.json                 # Dependencies
-└── README.md                    # This file
+src/
+  app.ts / server.ts     Express app assembly / process bootstrap
+  config/                 env (Zod-validated), logger, database, cloudinary
+  interfaces/             domain types (IUser, IBooking, IService, IPayment, ...)
+  models/                 Mongoose schemas
+  repositories/           persistence layer — never throws NotFound, returns T | null
+  services/               business logic — translates null -> domain errors
+  validators/              Zod schemas + validate() middleware, source of truth for both
+                          request validation and generated OpenAPI docs
+  controllers/             thin: parse request -> call service -> send response
+  routes/
+  middlewares/             auth, error handler, rate limiters, sanitizer
+  utils/                  AppError hierarchy, response envelope, pagination, asyncHandler
+  docs/                   OpenAPI registry + Swagger UI mount
 ```
+
+**Request flow**: route -> `validate()` (Zod) -> `authenticate`/`authorize` -> controller -> service -> repository -> Mongoose.
+
+**Error handling**: a typed `AppError` hierarchy (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `ValidationError`) is thrown from services and caught by a single global error handler, which maps it to the standard response envelope.
+
+**Response envelope** (every endpoint):
+
+```json
+{
+  "success": true,
+  "message": "Human-readable message",
+  "data": {},
+  "meta": { "timestamp": "2026-01-01T00:00:00.000Z", "pagination": { "...": "..." } }
+}
+```
+
+**Soft delete**: `User`, `Booking`, `Service`, and `Payment` carry a `deletedAt` field; `BaseRepository` excludes soft-deleted documents from all reads by default.
 
 ## Installation
 
-### Prerequisites
-
-- Node.js (v16+)
-- npm or yarn
-- MongoDB
-- Cloudinary account (for image uploads)
-- Email service (Gmail or similar)
-
-### Steps
-
-1. **Clone or navigate to the project directory**
-
-```bash
-cd tonyx-backend
-```
-
-2. **Install dependencies**
-
 ```bash
 npm install
+cp .env.example .env   # fill in real values — never commit .env
+npm run dev             # tsx watch, http://localhost:5000
 ```
 
-3. **Copy environment file**
+## Environment Variables
 
-```bash
-cp .env.example .env
-```
+See [.env.example](.env.example). `MONGODB_URI` and `JWT_SECRET` (32+ characters) are required; the process fails fast at startup with a clear error if they're missing or invalid — see `src/config/env.ts`.
 
-## Configuration
+## Scripts
 
-Edit `.env` with your configuration:
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start with hot reload (`tsx watch`) |
+| `npm run build` | Type-check and compile to `dist/` |
+| `npm start` | Run the compiled build (`dist/server.js`) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` / `lint:fix` | ESLint (flat config, strict TypeScript rules) |
+| `npm run format` / `format:check` | Prettier |
+| `npm test` / `test:watch` / `test:coverage` | Vitest |
 
-```env
-# Application
-NODE_ENV=development
-PORT=5000
-PROTOCOL=http
-HOST=localhost
+## API Documentation
 
-# Database
-MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/tonyx
+Interactive Swagger UI: `GET /api/docs` (raw OpenAPI JSON at `/api/docs.json`) once the server is running.
 
-# JWT
-JWT_SECRET=your_super_secret_key_here
-JWT_EXPIRE=7d
-
-# Cloudinary
-CLOUDINARY_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# Email
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
-
-# Frontend
-FRONTEND_URL=http://localhost:3000
-```
-
-## Running the Server
-
-### Development Mode (with hot reload)
-
-```bash
-npm run dev
-```
-
-### Production Mode
-
-```bash
-npm start
-```
-
-The server will start at `http://localhost:5000`
-
-### Health Check
+## Health Check
 
 ```bash
 curl http://localhost:5000/health
 ```
 
-## API Documentation
+## Docker
 
-### Authentication Endpoints
-
-#### Register
-```
-POST /api/v1/auth/register
-Body: {
-  firstName: string,
-  lastName: string,
-  email: string,
-  phone: string,
-  password: string,
-  role?: 'customer' | 'barber' | 'manager' | 'admin'
-}
+```bash
+docker build -f docker/Dockerfile -t tonyx-backend .
+docker run --env-file .env -p 5000:5000 tonyx-backend
 ```
 
-#### Login
-```
-POST /api/v1/auth/login
-Body: {
-  email: string,
-  password: string
-}
-Response: {
-  user: {...},
-  token: string
-}
-```
+## Security Notes
 
-#### Get Profile
-```
-GET /api/v1/auth/profile
-Headers: Authorization: Bearer {token}
-```
+- JWTs are signed/verified with `jsonwebtoken` under an explicit `HS256` algorithm allow-list (no algorithm-confusion surface).
+- Public registration always creates a `customer` account — role cannot be self-assigned via the API.
+- NoSQL-injection defense is layered: Zod `.strict()` schemas reject unknown/operator-shaped keys outright, and a small recursive sanitizer strips `$`/`.`-prefixed keys as a second layer.
+- `/api/v1/auth/login` and `/register` sit behind a stricter rate limit than general API traffic.
 
-### Services Endpoints
+## Roadmap / Known Gaps
 
-#### Get All Services
-```
-GET /api/v1/services
-Query: ?page=1&limit=10&sort=-createdAt
-```
-
-#### Get Services by Category
-```
-GET /api/v1/services/category/:category
-```
-
-#### Search Services
-```
-GET /api/v1/services/search?term=haircut
-```
-
-#### Get Popular Services
-```
-GET /api/v1/services/popular?limit=10
-```
-
-#### Create Service (Admin/Manager only)
-```
-POST /api/v1/services
-Body: {
-  name: string,
-  description: string,
-  category: string,
-  basePrice: number,
-  duration: number,
-  ...
-}
-```
-
-### Booking Endpoints
-
-#### Create Booking
-```
-POST /api/v1/bookings
-Headers: Authorization: Bearer {token}
-Body: {
-  barberId: string,
-  serviceIds: string[],
-  scheduledDate: date,
-  startTime: string,
-  endTime: string,
-  notes?: string
-}
-```
-
-#### Get My Bookings
-```
-GET /api/v1/bookings/my-bookings
-Query: ?page=1&limit=10&status=pending
-Headers: Authorization: Bearer {token}
-```
-
-#### Get Barber Bookings
-```
-GET /api/v1/bookings/barber/my-bookings
-Headers: Authorization: Bearer {token}
-```
-
-#### Cancel Booking
-```
-PUT /api/v1/bookings/:id/cancel
-Body: { reason: string }
-```
-
-#### Reschedule Booking
-```
-PUT /api/v1/bookings/:id/reschedule
-Body: {
-  newDate: date,
-  newStartTime: string,
-  newEndTime: string
-}
-```
-
-## Database Models
-
-### User
-- firstName, lastName
-- email, phone
-- password (hashed)
-- role (customer, barber, manager, admin)
-- profileImage
-- rating (average, count)
-- availability
-- specialization
-- totalEarnings
-
-### Service
-- name, description
-- category
-- basePrice, duration
-- image
-- barberSpecialists
-- requirements
-- popularity
-- tags
-
-### Booking
-- bookingNumber
-- customer, barber
-- services
-- scheduledDate, startTime, endTime
-- totalPrice, totalDuration
-- status (pending, confirmed, in-progress, completed, cancelled)
-- payment info
-- rating & review
-- location
-
-### Payment
-- transactionId
-- booking reference
-- payer, payee
-- amount, method
-- status (pending, processing, completed, failed, refunded)
-- gateway info
-
-### Review
-- booking reference
-- reviewer, reviewee
-- rating, title, comment
-- aspect ratings (professionalism, cleanliness, etc.)
-- images, responses
-
-### Notification
-- recipient
-- type (booking_confirmed, payment_received, etc.)
-- title, message
-- channels (inApp, email, sms)
-- priority
-- read status
-
-## Architecture
-
-### Pattern: MVC with Repository Pattern
-
-**Model Layer**: Mongoose schemas with validation
-**Repository Layer**: Data access abstraction (CRUD operations)
-**Service Layer**: Business logic and validations
-**Controller Layer**: Request/response handling
-**Route Layer**: API endpoint definitions
-
-### Error Handling
-
-Custom `AppError` class with:
-- HTTP status codes
-- Operational vs non-operational errors
-- Consistent error responses
-
-### Security Features
-
-- JWT authentication
-- Password hashing with bcryptjs
-- Role-based access control (RBAC)
-- Rate limiting
-- CORS configuration
-- Data sanitization (NoSQL injection prevention)
-- XSS protection
-- Input validation with Joi
-
-### Performance
-
-- Database indexes on frequently queried fields
-- Pagination support
-- Query optimization
-- Aggregation pipelines for complex queries
-
-## Best Practices Applied
-
-✓ Async/await throughout codebase
-✓ Separation of concerns
-✓ DRY (Don't Repeat Yourself)
-✓ SOLID principles
-✓ Consistent error handling
-✓ Comprehensive validation
-✓ Security best practices
-✓ Database indexing
-✓ Pagination for list endpoints
-✓ RESTful API design
-
-## Environment Variables
-
-Create a `.env` file in the root directory with all variables from `.env.example`
+- `Review`, `Promotion`, `Location`, `Notification`, and `TimeSlot` have typed Mongoose schemas but no repository/service/controller/route layer yet — add them when there's a concrete feature need.
+- Cloudinary is configured (`src/config/cloudinary.ts`) but no upload endpoint exists yet — add a Multer + Cloudinary flow when profile/service image upload is prioritized.
 
 ## License
 
 MIT
-
-## Author
-
-TonyX Studio Development Team
