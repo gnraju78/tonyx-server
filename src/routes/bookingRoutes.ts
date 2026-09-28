@@ -7,33 +7,24 @@ import { idParamSchema } from '../validators/common.validator.js';
 import {
   createBookingSchema,
   cancelBookingSchema,
-  rescheduleBookingSchema,
   bookingListQuerySchema,
 } from '../validators/booking.validator.js';
 
 const router = Router();
 
-// Customer bookings
+// Create booking (Public or authenticated, depending on usecase)
+// But keeping it consistent:
 router.post(
   '/',
-  authenticate,
   validate({ body: createBookingSchema }),
   bookingController.createBooking
 );
-router.get(
-  '/my-bookings',
-  authenticate,
-  validate({ query: bookingListQuerySchema }),
-  bookingController.getMyBookings
-);
 
-// Barber bookings
 router.get(
-  '/barber/my-bookings',
+  '/',
   authenticate,
-  authorize(Role.BARBER),
   validate({ query: bookingListQuerySchema }),
-  bookingController.getBarberBookings
+  bookingController.getAllBookings
 );
 
 router.get(
@@ -42,29 +33,26 @@ router.get(
   validate({ params: idParamSchema }),
   bookingController.getBookingById
 );
+
 router.put(
   '/:id/cancel',
   authenticate,
   validate({ params: idParamSchema, body: cancelBookingSchema }),
   bookingController.cancelBooking
 );
-router.put(
-  '/:id/reschedule',
-  authenticate,
-  validate({ params: idParamSchema, body: rescheduleBookingSchema }),
-  bookingController.rescheduleBooking
-);
+
 router.put(
   '/:id/confirm',
   authenticate,
-  authorize(Role.BARBER, Role.ADMIN),
+  authorize(Role.ADMIN),
   validate({ params: idParamSchema }),
   bookingController.confirmBooking
 );
+
 router.put(
   '/:id/complete',
   authenticate,
-  authorize(Role.BARBER, Role.ADMIN),
+  authorize(Role.ADMIN),
   validate({ params: idParamSchema }),
   bookingController.completeBooking
 );

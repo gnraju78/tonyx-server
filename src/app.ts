@@ -18,6 +18,7 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import serviceRoutes from './routes/serviceRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -46,6 +47,7 @@ export function createApp(): Express {
   app.use('/api/v1/users', userRoutes);
   app.use('/api/v1/services', serviceRoutes);
   app.use('/api/v1/bookings', bookingRoutes);
+  app.use('/api/v1/webhooks', webhookRoutes);
 
   app.get('/health', (_req, res) => {
     sendSuccess(res, { status: 'OK' }, 'Service is healthy');
