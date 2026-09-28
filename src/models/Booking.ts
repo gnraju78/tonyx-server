@@ -1,11 +1,7 @@
-import { randomBytes } from 'node:crypto';
+
 import { Schema, model } from 'mongoose';
 import type { IBooking } from '../interfaces/booking.interface.js';
-import {
-  BookingPaymentStatus,
-  BookingStatus,
-  PaymentMethod,
-} from '../interfaces/booking.interface.js';
+import { BookingStatus } from '../interfaces/booking.interface.js';
 import { auditFields } from './plugins/auditFields.js';
 
 const bookingSchema = new Schema<IBooking>(
@@ -13,105 +9,45 @@ const bookingSchema = new Schema<IBooking>(
     bookingNumber: {
       type: String,
       unique: true,
-      // sparse: false is fine — bookingNumber is always set in the pre-save
-      // hook below, so the unique index never sees more than one `undefined`.
     },
-    customer: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
-    barber: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
-    services: [
-      {
-        service: {
-          type: Schema.Types.ObjectId,
-          ref: 'Service',
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          default: 1,
-          min: 1,
-        },
-        price: {
-          type: Number,
-          required: true,
-        },
-      },
-    ],
-    scheduledDate: {
-      type: Date,
-      required: true,
-      index: true,
-    },
-    startTime: {
+    fullName: {
       type: String,
       required: true,
     },
-    endTime: {
+    partnerName: {
+      type: String,
+    },
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    mobileNumber: {
       type: String,
       required: true,
     },
-    totalDuration: {
-      type: Number,
+    weddingDate: {
+      type: String,
+      required: true
+    },
+    location: {
+      type: String,
       required: true,
     },
-    totalPrice: {
-      type: Number,
+    collectionOfInterest: {
+      type: String,
       required: true,
+    },
+    tellUsAboutYourDay: {
+      type: String,
+      maxlength: 1000,
     },
     status: {
       type: String,
       enum: Object.values(BookingStatus),
       default: BookingStatus.PENDING,
       index: true,
-    },
-    notes: {
-      type: String,
-      maxlength: 500,
-    },
-    specialRequests: {
-      type: String,
-      maxlength: 500,
-    },
-    payment: {
-      method: {
-        type: String,
-        enum: Object.values(PaymentMethod),
-      },
-      status: {
-        type: String,
-        enum: Object.values(BookingPaymentStatus),
-        default: BookingPaymentStatus.PENDING,
-      },
-      transactionId: String,
-      paidAmount: Number,
-    },
-    location: {
-      type: String,
-      required: true,
-    },
-    reminderSent: {
-      type: Boolean,
-      default: false,
-    },
-    rating: {
-      score: { type: Number, min: 0, max: 5 },
-      review: { type: String, maxlength: 500 },
-      ratedAt: Date,
-    },
-    cancellationReason: String,
-    cancellationTime: Date,
-    rescheduleCount: {
-      type: Number,
-      default: 0,
     },
     ...auditFields,
   },
@@ -120,22 +56,9 @@ const bookingSchema = new Schema<IBooking>(
   }
 );
 
-bookingSchema.pre('save', function generateBookingNumber(next) {
-  if (!this.isNew || this.bookingNumber) {
-    next();
-    return;
-  }
 
-  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const randomPart = randomBytes(4).toString('hex').toUpperCase();
-  this.bookingNumber = `BK-${datePart}-${randomPart}`;
-  next();
-});
 
-bookingSchema.index({ customer: 1, createdAt: -1 });
-bookingSchema.index({ barber: 1, createdAt: -1 });
-bookingSchema.index({ scheduledDate: 1, barber: 1 });
+bookingSchema.index({ email: 1 });
 bookingSchema.index({ status: 1, createdAt: -1 });
-bookingSchema.index({ 'payment.status': 1 });
 
 export const Booking = model<IBooking>('Booking', bookingSchema);

@@ -23,6 +23,8 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
 
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
+
+  WHATSAPP_TOKEN: z.string().optional(),
 });
 
 function parseEnv() {
@@ -70,6 +72,10 @@ export const config = Object.freeze({
     isConfigured: Boolean(
       env.CLOUDINARY_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET
     ),
+  },
+
+  whatsapp: {
+    token: env.WHATSAPP_TOKEN,
   },
 
   frontendUrl: env.FRONTEND_URL,

@@ -4,7 +4,6 @@ import { loginSchema, registerSchema } from '../validators/auth.validator.js';
 import {
   createBookingSchema,
   cancelBookingSchema,
-  rescheduleBookingSchema,
 } from '../validators/booking.validator.js';
 import { createServiceSchema, updateServiceSchema } from '../validators/service.validator.js';
 import { updateProfileSchema, changePasswordSchema } from '../validators/user.validator.js';
@@ -189,18 +188,4 @@ registry.registerPath({
   responses: { 200: { description: 'Booking cancelled' } },
 });
 
-registry.registerPath({
-  method: 'put',
-  path: '/api/v1/bookings/{id}/reschedule',
-  tags: ['Bookings'],
-  summary: 'Reschedule a booking',
-  security: [{ [bearerAuth.name]: [] }],
-  request: {
-    params: z.object({ id: z.string() }),
-    body: { content: { 'application/json': { schema: rescheduleBookingSchema } } },
-  },
-  responses: {
-    200: { description: 'Booking rescheduled' },
-    409: { description: 'New time slot unavailable' },
-  },
-});
+
