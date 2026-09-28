@@ -14,7 +14,7 @@ export interface IBooking extends AuditFields {
   partnerName?: string;
   email: string;
   mobileNumber: string;
-  weddingDate?: string;
+  eventDate?: string;
   location: string;
   collectionOfInterest: string;
   tellUsAboutYourDay?: string;

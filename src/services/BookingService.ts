@@ -12,7 +12,7 @@ export class BookingService {
       partnerName: dto.partnerName,
       email: dto.email,
       mobileNumber: dto.mobileNumber,
-      weddingDate: dto.weddingDate,
+      eventDate: dto.eventDate,
       location: dto.location,
       collectionOfInterest: dto.collectionOfInterest,
       tellUsAboutYourDay: dto.tellUsAboutYourDay,

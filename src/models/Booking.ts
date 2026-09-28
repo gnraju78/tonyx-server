@@ -27,7 +27,7 @@ const bookingSchema = new Schema<IBooking>(
       type: String,
       required: true,
     },
-    weddingDate: {
+    eventDate: {
       type: String,
       required: true
     },

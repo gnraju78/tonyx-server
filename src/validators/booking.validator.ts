@@ -6,7 +6,7 @@ export const createBookingSchema = z
     partnerName: z.string().trim().optional(),
     email: z.string().email('Invalid email address').trim(),
     mobileNumber: z.string().trim().min(1, 'Mobile number is required'),
-    weddingDate: z.string().trim().optional(),
+    eventDate: z.string().trim().optional(),
     location: z.string().trim().min(1, 'Location is required'),
     collectionOfInterest: z.string().trim().min(1, 'Collection of interest is required'),
     tellUsAboutYourDay: z.string().max(1000).optional(),
