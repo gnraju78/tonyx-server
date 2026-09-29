@@ -5,7 +5,7 @@ export class WhatsAppService {
   // Using the phone number ID from the provided curl command
   private readonly baseUrl = 'https://graph.facebook.com/v25.0/1296067430266505/messages';
 
-  async sendBookingConfirmation(booking: IBooking, to: string = '919014902932') {
+  async sendBookingConfirmation(_booking: IBooking, to: string = '919014902932') {
     if (!config.whatsapp.token) {
       console.warn('WhatsApp token is not configured. Skipping message.');
       return;

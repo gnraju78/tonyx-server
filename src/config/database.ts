@@ -6,7 +6,7 @@ mongoose.set('strictQuery', true);
 
 export async function connectDB(uri: string = config.mongodb.uri): Promise<typeof mongoose> {
 
-  console.log(uri,"uri")
+  
   const conn = await mongoose.connect(uri);
 
   logger.info({ host: conn.connection.host }, 'MongoDB connected');
