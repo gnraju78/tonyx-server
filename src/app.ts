@@ -39,6 +39,9 @@ export function createApp(): Express {
 
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ limit: '10kb', extended: true }));
+  // Webhooks need raw queries (like 'hub.mode') without being sanitized
+  app.use('/api/v1/webhooks', webhookRoutes);
+
   app.use(sanitizeInput);
 
   mountDocs(app);
@@ -47,7 +50,6 @@ export function createApp(): Express {
   app.use('/api/v1/users', userRoutes);
   app.use('/api/v1/services', serviceRoutes);
   app.use('/api/v1/bookings', bookingRoutes);
-  app.use('/api/v1/webhooks', webhookRoutes);
 
   app.get('/health', (_req, res) => {
     sendSuccess(res, { status: 'OK' }, 'Service is healthy');
