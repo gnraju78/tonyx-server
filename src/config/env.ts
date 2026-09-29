@@ -4,8 +4,6 @@ import { z } from 'zod';
 loadDotenv();
 loadDotenv();
 
-console.log("JWT_SECRET:", process.env.JWT_SECRET);
-console.log("Length:", process.env.JWT_SECRET?.length);
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
